@@ -60,7 +60,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         try {
-            const response = await fetch("http://distributed-task-queue-production.up.railway.app/jobs", {
+            const response = await fetch("https://distributed-task-queue-production.up.railway.app/jobs", {
                 method: "POST",
                 headers: headers,
                 body: JSON.stringify(body)
@@ -94,7 +94,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
         // Pending
-        const pendingResp = await fetch("http://distributed-task-queue-production.up.railway.app/jobs/pending");
+        const pendingResp = await fetch("https://distributed-task-queue-production.up.railway.app/jobs/pending");
         console.log("PENDING RAW RESPONSE:", pendingResp);
 
         const pending = await pendingResp.json();
@@ -108,7 +108,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
         // Running
-        const runningResp = await fetch("http://distributed-task-queue-production.up.railway.app/jobs/running");
+        const runningResp = await fetch("https://distributed-task-queue-production.up.railway.app/jobs/running");
         console.log("RUNNING RAW RESPONSE:", runningResp);
 
         const running = await runningResp.json();
@@ -121,7 +121,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
         // Completed
-        const completedResp = await fetch("http://distributed-task-queue-production.up.railway.app/jobs/completed");
+        const completedResp = await fetch("https://distributed-task-queue-production.up.railway.app/jobs/completed");
         console.log("COMPLETED RAW RESPONSE:", completedResp);
 
         const completed = await completedResp.json();
@@ -134,7 +134,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
         // DLQ
-        const dlqResp = await fetch("http://distributed-task-queue-production.up.railway.app/jobs/dlq");
+        const dlqResp = await fetch("https://distributed-task-queue-production.up.railway.app/jobs/dlq");
         console.log("DLQ RAW RESPONSE:", dlqResp);
 
         const dlq = await dlqResp.json();
@@ -147,7 +147,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
         // Metrics
-        const metricsResp = await fetch("http://distributed-task-queue-production.up.railway.app/jobs/metrics");
+        const metricsResp = await fetch("https://distributed-task-queue-production.up.railway.app/jobs/metrics");
         console.log("METRICS RAW RESPONSE:", metricsResp);
 
         const metrics = await metricsResp.json();
