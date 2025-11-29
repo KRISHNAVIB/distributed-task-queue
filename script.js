@@ -1,70 +1,64 @@
-// script.js
-// =======================
-// STEP: Full dashboard logic (Submit + Refresh + Idempotency)
-// =======================
-
 document.addEventListener("DOMContentLoaded", () => {
 
-    console.log("JS Loaded Successfully!");
+    console.log("Frontend loaded.");
 
-    // Buttons
     const scrollBtn = document.getElementById("scrollToFormBtn");
     const refreshBtn = document.getElementById("refreshBtn");
     const submitBtn = document.getElementById("submitJobBtn");
 
-    // Form inputs
     const tenantIdInput = document.getElementById("tenantId");
     const idempotencyKeyInput = document.getElementById("idempotencyKey");
     const payloadInput = document.getElementById("payload");
     const maxRetriesInput = document.getElementById("maxRetries");
 
-
-
-    // =======================
-    // SUBMIT JOB
-    // =======================
     submitBtn.addEventListener("click", async () => {
 
-        console.log("Submit Job clicked!");
+        console.log("Submit Job clicked.");
 
         const tenantId = tenantIdInput.value.trim();
         const payloadText = payloadInput.value.trim();
         const maxRetries = parseInt(maxRetriesInput.value.trim());
-        const idemKey = idempotencyKeyInput.value.trim();
+        const idempotencyKey = idempotencyKeyInput.value.trim();
 
         if (!tenantId) {
-            alert("Tenant ID is required");
+            alert("Tenant ID is required.");
             return;
         }
 
-        // Validate JSON
         let payloadObj = null;
+
         try {
-            payloadObj = JSON.parse(payloadText);
+            const cleaned = payloadText
+                .replace(/“|”/g, '"')
+                .replace(/‘|’/g, "'")
+                .replace(/：/g, ":");
+
+            payloadObj = JSON.parse(cleaned);
         } catch (err) {
-            alert("Invalid JSON payload.\nExample: {\"forceFail\": true}");
+            alert('Invalid JSON payload.\nExample: {"forceFail": true}');
             return;
         }
 
-        // Prepare request body
         const body = {
             tenantId: tenantId,
             payloadJson: JSON.stringify(payloadObj),
             maxRetries: maxRetries
         };
 
-        // Prepare headers
         const headers = { "Content-Type": "application/json" };
-        if (idemKey !== "") {
-            headers["Idempotency-Key"] = idemKey;
+        if (idempotencyKey !== "") {
+            headers["Idempotency-Key"] = idempotencyKey;
         }
 
         try {
-            const response = await fetch("https://distributed-task-queue-production.up.railway.app/jobs", {
-                method: "POST",
-                headers: headers,
-                body: JSON.stringify(body)
-            });
+            const response = await fetch(
+                "https://distributed-task-queue-production.up.railway.app/jobs",
+                {
+                    method: "POST",
+                    headers: headers,
+                    body: JSON.stringify(body)
+                }
+            );
 
             if (!response.ok) {
                 alert("Backend error: " + response.status);
@@ -75,100 +69,57 @@ document.addEventListener("DOMContentLoaded", () => {
             console.log("Job submitted:", result);
 
             alert("Job submitted successfully!\nJob ID: " + result.jobId);
-
-            // Optional: reset only retries
             maxRetriesInput.value = "3";
 
         } catch (error) {
             console.error("Error submitting job:", error);
-            alert("Failed to reach backend. Is it running?");
+            alert("Failed to reach backend. Check connectivity.");
         }
-
     });
 
-    // =======================
-    // DASHBOARD AUTO-REFRESH
-    // =======================
     async function refreshDashboard() {
-    console.log("Refreshing dashboard...");
+        console.log("Refreshing dashboard...");
 
-    try {
-        // Pending
-        const pendingResp = await fetch("https://distributed-task-queue-production.up.railway.app/jobs/pending");
-        console.log("PENDING RAW RESPONSE:", pendingResp);
+        try {
+            const pending = await (await fetch("https://distributed-task-queue-production.up.railway.app/jobs/pending")).json();
+            document.getElementById("pendingList").innerHTML =
+                Array.isArray(pending)
+                    ? pending.map(job => `<div class='job-item'>${job}</div>`).join("")
+                    : `<div class='job-item'>INVALID DATA: ${JSON.stringify(pending)}</div>`;
 
-        const pending = await pendingResp.json();
-        console.log("PENDING JSON =", pending);
+            const running = await (await fetch("https://distributed-task-queue-production.up.railway.app/jobs/running")).json();
+            document.getElementById("runningList").innerHTML =
+                Array.isArray(running)
+                    ? running.map(job => `<div class='job-item'>${job}</div>`).join("")
+                    : `<div class='job-item'>INVALID DATA: ${JSON.stringify(running)}</div>`;
 
-        // Render pending
-        document.getElementById("pendingList").innerHTML =
-            Array.isArray(pending)
-                ? pending.map(job => `<div class='job-item'>${job}</div>`).join("")
-                : `<div class='job-item'>INVALID DATA: ${JSON.stringify(pending)}</div>`;
+            const completed = await (await fetch("https://distributed-task-queue-production.up.railway.app/jobs/completed")).json();
+            document.getElementById("completedList").innerHTML =
+                Array.isArray(completed)
+                    ? completed.map(job => `<div class='job-item'>${job}</div>`).join("")
+                    : `<div class='job-item'>INVALID DATA: ${JSON.stringify(completed)}</div>`;
 
+            const dlq = await (await fetch("https://distributed-task-queue-production.up.railway.app/jobs/dlq")).json();
+            document.getElementById("dlqList").innerHTML =
+                Array.isArray(dlq)
+                    ? dlq.map(job => `<div class='job-item'>${job}</div>`).join("")
+                    : `<div class='job-item'>INVALID DATA: ${JSON.stringify(dlq)}</div>`;
 
-        // Running
-        const runningResp = await fetch("https://distributed-task-queue-production.up.railway.app/jobs/running");
-        console.log("RUNNING RAW RESPONSE:", runningResp);
+            const metrics = await (await fetch("https://distributed-task-queue-production.up.railway.app/jobs/metrics")).json();
 
-        const running = await runningResp.json();
-        console.log("RUNNING JSON =", running);
+            document.getElementById("m_submitted").innerText = metrics.submitted;
+            document.getElementById("m_completed").innerText = metrics.completed;
+            document.getElementById("m_failed").innerText = metrics.failed;
+            document.getElementById("m_retried").innerText = metrics.retried;
 
-        document.getElementById("runningList").innerHTML =
-            Array.isArray(running)
-                ? running.map(job => `<div class='job-item'>${job}</div>`).join("")
-                : `<div class='job-item'>INVALID DATA: ${JSON.stringify(running)}</div>`;
-
-
-        // Completed
-        const completedResp = await fetch("https://distributed-task-queue-production.up.railway.app/jobs/completed");
-        console.log("COMPLETED RAW RESPONSE:", completedResp);
-
-        const completed = await completedResp.json();
-        console.log("COMPLETED JSON =", completed);
-
-        document.getElementById("completedList").innerHTML =
-            Array.isArray(completed)
-                ? completed.map(job => `<div class='job-item'>${job}</div>`).join("")
-                : `<div class='job-item'>INVALID DATA: ${JSON.stringify(completed)}</div>`;
-
-
-        // DLQ
-        const dlqResp = await fetch("https://distributed-task-queue-production.up.railway.app/jobs/dlq");
-        console.log("DLQ RAW RESPONSE:", dlqResp);
-
-        const dlq = await dlqResp.json();
-        console.log("DLQ JSON =", dlq);
-
-        document.getElementById("dlqList").innerHTML =
-            Array.isArray(dlq)
-                ? dlq.map(job => `<div class='job-item'>${job}</div>`).join("")
-                : `<div class='job-item'>INVALID DATA: ${JSON.stringify(dlq)}</div>`;
-
-
-        // Metrics
-        const metricsResp = await fetch("https://distributed-task-queue-production.up.railway.app/jobs/metrics");
-        console.log("METRICS RAW RESPONSE:", metricsResp);
-
-        const metrics = await metricsResp.json();
-        console.log("METRICS JSON =", metrics);
-
-        document.getElementById("m_submitted").innerText = metrics.submitted;
-        document.getElementById("m_completed").innerText = metrics.completed;
-        document.getElementById("m_failed").innerText = metrics.failed;
-        document.getElementById("m_retried").innerText = metrics.retried;
-
-    } catch (error) {
-        console.error("Dashboard refresh failed:", error);
+        } catch (error) {
+            console.error("Dashboard refresh failed:", error);
+        }
     }
-}
 
-    // Manual refresh button
     refreshBtn.addEventListener("click", refreshDashboard);
 
-    // Auto refresh every 2 seconds
     setInterval(refreshDashboard, 2000);
 
-    // Initial load
     refreshDashboard();
 });
