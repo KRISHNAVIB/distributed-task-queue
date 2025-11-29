@@ -142,6 +142,19 @@ This model keeps the implementation simple but still demonstrates:
 
 ---
 
+## Crash Recovery (Simple Overview)
+
+The worker uses Redis leases to ensure jobs never get stuck if the
+application restarts during processing.
+
+- When a job is picked, a lease with TTL is created.
+- If the worker crashes, the lease expires and the job becomes available again.
+- On application startup, any jobs found in the `running` set are automatically
+  moved back to `pending` and their stale leases are cleared.
+
+This ensures the system always recovers cleanly after restarts and no job is lost.
+
+
 ## Design Decisions & Trade-Offs
 
 ### 1. Thread-Based Workers Instead of Separate Services
