@@ -31,7 +31,7 @@ public class JobService {
         String rateKey=rateKey(tenantId);
         Long rateCount=repo.incrementCounterWithExpiry(rateKey,60);
 
-        if(rateCount>1000) {
+        if(rateCount>10) {
             log.warn("Rate limit exceeded for tenant={}, count={}", tenantId, rateCount);
             return ResponseEntity.status(429).body("Rate limit exceeded(10jobs/min)");
         }
