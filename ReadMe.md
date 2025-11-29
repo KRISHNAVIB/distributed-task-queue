@@ -202,4 +202,4 @@ Open `frontend/index.html` using the “Live Server” extension in VS Code.
 ## Author
 
 Built by **Krishna Shankar**  
-Designed, implemented, and tested within the 10-hour timeline.
+Designed, implemented, and tested 
